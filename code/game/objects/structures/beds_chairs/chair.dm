@@ -271,3 +271,30 @@
 
 /obj/structure/chair/mime/post_unbuckle_mob(mob/living/M)
 	M.pixel_y -= 5
+
+/obj/structure/chair/stall
+	name = "horse stall"
+	desc = "A sturdy stall for horses to rest in comfort."
+	icon_state = "chair"
+	can_buckle = 1
+	buckle_lying = 0
+	resistance_flags = NONE
+	max_integrity = 300
+	item_chair = null
+	layer = OBJ_LAYER
+
+/obj/structure/chair/stall/buckle_mob(mob/living/M, force = FALSE, check_loc = TRUE)
+	// Только для лошадей (saiga, saigabuck, и их потомков)
+	if(!istype(M, /mob/living/simple_animal/hostile/retaliate/saiga) && !istype(M, /mob/living/simple_animal/hostile/retaliate/saigabuck))
+		to_chat(M, "<span class='warning'>Only saiga can be buckled into the stall.</span>")
+		return FALSE
+	return ..()
+
+/obj/structure/chair/stall/post_buckle_mob(mob/living/simple_animal/hostile/retaliate/saiga/M)
+	. = ..()
+	// Отключаем трату голода и усталости
+	M.in_stall = TRUE
+
+/obj/structure/chair/stall/post_unbuckle_mob(mob/living/simple_animal/hostile/retaliate/saiga/M)
+	. = ..()
+	M.in_stall = FALSE

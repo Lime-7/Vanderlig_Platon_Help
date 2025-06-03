@@ -20,6 +20,9 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	var/icon_dead = ""
 	///We only try to show a gibbing animation if this exists.
 	var/icon_gib = null
+	// иконки, используемые для сайги; находятся здесь для поддержания структуры кода
+	var/icon_rest = ""
+	var/icon_exhausted = ""
 	///Flip the sprite upside down on death. Mostly here for things lacking custom dead sprites.
 	var/flip_on_death = FALSE
 
@@ -185,6 +188,10 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	var/obj/item/udder/udder = null
 	var/datum/reagent/milk_reagent = null
 
+	///Параметры голода и усталости, связанные с перемещением
+	var/hunger
+	var/fatigue
+
 /mob/living/simple_animal/Initialize()
 	. = ..()
 	if(!(AIStatus in GLOB.simple_animals))
@@ -232,11 +239,13 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 			changeNext_move(20) // milking sound length
 			udder.milkAnimal(O, user)
 			return TRUE
+			/*
 	if(!is_type_in_list(O, food_type))
 		return ..()
 	else
 		if(try_tame(O, user))
 			return TRUE
+			*/
 	. = ..()
 
 /mob/living/simple_animal/proc/try_tame(obj/item/O, mob/user)
@@ -830,16 +839,24 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 		if(riding_datum.handle_ride(user, direction))
 			riding_datum.vehicle_move_delay = move_to_delay
 			if(user.m_intent == MOVE_INTENT_RUN)
-				riding_datum.vehicle_move_delay -= 1
-				if(loc != oldloc)
-					var/turf/open/T = loc
-					if(!do_footstep && T.footstep)
-						do_footstep = TRUE
-						playsound(loc,pick('sound/foley/footsteps/hoof/horserun (1).ogg','sound/foley/footsteps/hoof/horserun (2).ogg','sound/foley/footsteps/hoof/horserun (3).ogg'), 100, TRUE)
-					else
-						do_footstep = FALSE
+				if((hunger > 600 && fatigue > 400) || has_status_effect(/datum/status_effect/animal_adrenaline))
+					riding_datum.vehicle_move_delay -= 1
+					if(loc != oldloc)
+						hunger -= 10
+						fatigue -= 20
+						var/turf/open/T = loc
+						if(!do_footstep && T.footstep)
+							do_footstep = TRUE
+							playsound(loc,pick('sound/foley/footsteps/hoof/horserun (1).ogg','sound/foley/footsteps/hoof/horserun (2).ogg','sound/foley/footsteps/hoof/horserun (3).ogg'), 100, TRUE)
+							do_footstep = FALSE
+				else
+					user.toggle_rogmove_intent(MOVE_INTENT_WALK)
+					user.visible_message("<span class='warning'>[src] doesn't want to gallop!</span>")
 			else
+				if((hunger < 200 || fatigue < 200) && !has_status_effect(/datum/status_effect/animal_adrenaline))
+					riding_datum.vehicle_move_delay += 1
 				if(loc != oldloc)
+					hunger -= 2
 					var/turf/open/T = loc
 					if(!do_footstep && T.footstep)
 						do_footstep = TRUE
@@ -856,14 +873,20 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 				var/obj/structure/door/MD = locate() in loc
 				if(MD && !MD.ridethrough)
 					if(isliving(user))
-						var/mob/living/L = user
-						var/strong_thighs = L.get_skill_level((/datum/skill/misc/riding))
-						if(prob(60 - (strong_thighs * 10))) // Legendary riders do not fall!
+						// На Вандерлине уже реализована система, которая учитывает уровень навыка верховой езды при проходе сквозь двери; я её немного изменил по запросу
+						var/mob/living/L = user // .это
+						var/strong_thighs = L.get_skill_level((/datum/skill/misc/riding)) // .это
+						var/diceroll = rand(1, 20) // .это
+						if((diceroll + strong_thighs*2) < 14) // .это
 							unbuckle_mob(L)
 							L.Paralyze(50)
 							L.Stun(50)
 							playsound(L.loc, 'sound/foley/zfall.ogg', 100, FALSE)
+							L.visible_message(span_notice("Dice roll: [diceroll + strong_thighs*2]"))
 							L.visible_message(span_danger("[L] falls off [src]!"))
+						else
+							L.visible_message(span_notice("Dice roll: [diceroll + strong_thighs*2]"))
+							L.visible_message(span_notice("[L] deftly bends down on [src] without hitting their head on the doorway"))
 
 /mob/living/simple_animal/buckle_mob(mob/living/buckled_mob, force = 0, check_loc = 1)
 	. = ..()
@@ -969,3 +992,14 @@ GLOBAL_VAR_INIT(farm_animals, FALSE)
 	SHOULD_CALL_PARENT(TRUE)
 	var/drop_location = (src in home.contents) ? get_turf(home) : home
 	forceMove(drop_location)
+
+/mob/living/simple_animal/apply_damage(damage, damagetype = BRUTE, def_zone = null, blocked = FALSE, forced = FALSE, spread_damage = FALSE)
+	. = ..()
+	if(. && damagetype != STAMINA)
+		apply_status_effect(/datum/status_effect/animal_adrenaline)
+
+/datum/status_effect/animal_adrenaline
+	id = "animal_adrenaline"
+	duration = 30 SECONDS
+	alert_type = null
+	status_type = STATUS_EFFECT_REFRESH

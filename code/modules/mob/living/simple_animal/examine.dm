@@ -94,6 +94,32 @@
 			if(-INFINITY to -5)
 				. += "<span class='warning'><B>[t_He] look[p_s()] much weaker than I.</B></span>"
 
+	switch(fatigue)
+		if(-INFINITY to 400)
+			. += "<span class='warning'>[p_they(TRUE)] загнана, выглядит будто вот-вот помрёт!</span>"
+		if(401 to 600)
+			. += "<span class='warning'>[p_they(TRUE)] тяжело дышит, ее бока покрыты мылом.</span>"
+		if(601 to 800)
+			. += "<span class='notice'>[p_they(TRUE)] слегка устала.</span>"
+		if(801 to 1000)
+			. += "<span class='notice'>[p_they(TRUE)] полная сил!</span>"
+
+	if(user.mind)
+		var/mob/living/H = user
+		if(H.get_skill_level(/datum/skill/labor/farming) >= 3 || H.get_skill_level(/datum/skill/misc/riding) >= 3)
+			switch(hunger)
+				if(-INFINITY to 200)
+					. += "<span class='warning'>[p_they(TRUE)] выглядит будто вот-вот скончается от голода, ее бока распирают ребра!</span>"
+				if(201 to 400)
+					. += "<span class='warning'>[p_they(TRUE)] выглядит очень голодной!</span>"
+				if(401 to 600)
+					. += "<span class='warning'>[p_they(TRUE)] выглядит голодной.</span>"
+				if(601 to 800)
+					. += "<span class='notice'>[p_they(TRUE)] выглядит слегка голодной.</span>"
+				if(801 to 1000)
+					. += "<span class='notice'>[p_they(TRUE)] выглядит сытой!</span>"
+
+
 	if(Adjacent(user) && HAS_TRAIT(src, TRAIT_SIMPLE_WOUNDS))
 		. += "<a href='byond://?src=[REF(src)];inspect_animal=1'>Inspect Wounds</a>"
 

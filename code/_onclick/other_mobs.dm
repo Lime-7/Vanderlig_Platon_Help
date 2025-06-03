@@ -351,6 +351,37 @@
 				if(A.z != src.z)
 					if(!HAS_TRAIT(src, TRAIT_ZJUMP))
 						return
+
+				// Прыжки на сайге
+				if(ismob(loc) || (buckled && istype(buckled, /mob/living/simple_animal/hostile/retaliate/saiga)))
+					var/mob/living/simple_animal/hostile/retaliate/saiga/mount
+					if(ismob(loc))
+						mount = loc
+					else
+						mount = buckled
+
+					if(istype(mount))
+						if(get_skill_level(/datum/skill/misc/riding) < 4)
+							to_chat(src, span_warning("My riding skill is not high enough to attempt jumps!"))
+							return
+
+						if(mount.stat != CONSCIOUS)
+							return
+						if(!mount.can_act)
+							return
+
+						changeNext_move(mmb_intent.clickcd)
+						face_atom(A)
+						emote("jump", forced = TRUE)
+
+						mount.fatigue -= 45
+						throw_at(get_step(src, src.dir), 1, 1, mount, spin = FALSE)
+						if(isopenturf(src.loc))
+							var/turf/open/T = src.loc
+							if(T.landsound)
+								playsound(T, T.landsound, 100, FALSE)
+							T.Entered(src)
+						return
 				changeNext_move(mmb_intent.clickcd)
 				face_atom(A)
 				if(m_intent == MOVE_INTENT_RUN)

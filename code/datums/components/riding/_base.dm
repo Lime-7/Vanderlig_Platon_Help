@@ -84,6 +84,7 @@
 	var/atom/movable/AM = parent
 	AM.unbuckle_mob(M)
 
+// На вандерлине уже реализованно, то что нельзя поворачивать через ЛКМ или кнтрл + стрелочки и как я понимаю, реализованно это через этот прок(хотя вообще этот прок используется для того, чтобы наездник всегда смотрел в ту же сторону, что и транстпорт)
 /datum/component/riding/proc/handle_vehicle_offsets()
 	var/atom/movable/AM = parent
 	var/AM_dir = "[AM.dir]"
@@ -162,6 +163,10 @@
 	var/atom/movable/AM = parent
 	if(user.incapacitated(ignore_grab = TRUE))
 		Unbuckle(user)
+		return
+
+	// не даем двигаться на 180 градусов
+	if((user.dir == NORTH && direction == SOUTH) || (user.dir == SOUTH && direction == NORTH) || (user.dir == EAST && direction == WEST) || (user.dir == WEST && direction == EAST))
 		return
 
 	if(world.time < last_vehicle_move + ((last_move_diagonal? 2 : 1) * vehicle_move_delay))
